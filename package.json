@@ -1,0 +1,28 @@
+{
+  "name": "sync-socket",
+  "version": "1.0.0",
+  "description": "A synchronous interface to Node's net.Socket",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JacobFischer/sync-socket.git"
+  },
+  "keywords": [
+    "sync",
+    "synchronous",
+    "net",
+    "tcp"
+  ],
+  "author": "Jacob Fischer <jacob.t.fischer@gmail.com> (jacobfischer.me)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/JacobFischer/sync-socket/issues"
+  },
+  "homepage": "https://github.com/JacobFischer/sync-socket#README.md",
+  "dependencies": {
+    "sync-request": "^3.0.1"
+  }
+}
