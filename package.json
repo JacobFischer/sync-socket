@@ -22,7 +22,4 @@
     "url": "https://github.com/JacobFischer/sync-socket/issues"
   },
   "homepage": "https://github.com/JacobFischer/sync-socket#README.md",
-  "dependencies": {
-    "sync-request": "^3.0.1"
-  }
 }

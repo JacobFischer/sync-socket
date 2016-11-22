@@ -2,10 +2,9 @@
 // A synchronous script will be used to query data from it, so we have the illusion of a synchronous client
 // Without the need for a C++ dependency
 
-var http = require("http");
 var net = require("net");
-var cluster = require("cluster");
-var httpPort = process.argv[2]; // [0] should be the node executable, [1] should be the file worker.js, [2] will be the first arg, which is what we want
+var serverPort = process.argv[2]; // [0] should be the node executable, [1] should be the file worker.js, [2] will be the first arg, which is what we want
+var EOT_CHAR = String.fromCharCode(3);
 
 var client = {
     ready: false,
@@ -13,6 +12,7 @@ var client = {
     closed: false,
     connected: false,
     lastError: null,
+    maxBuffer: 1024*16, // any higher may be too much to spit out to stdout for the query thread
     socket: new net.Socket(),
 };
 
@@ -30,37 +30,51 @@ client.socket.on("error", function(err) {
     client.lastError = err;
 });
 
-// Callback methods for http requests
+// Callback methods for TCP requests
 // All are invoked via reflection
-var httpHandler = {
+var handler = {
+    ready: function(callback) {
+        callback(); // they just want to hear back from us
+    },
+
     connect: function(options, callback) {
         var errorHandler = function(err) {
             callback(err.message);
         };
+
         client.socket.once("error", errorHandler);
 
         client.socket.connect(options, function() {
             // success!
             client.socket.removeListener("error", errorHandler);
             client.connected = true;
-            callback();
+            callback(null, {
+                localAddress: client.socket.localAddress,
+                localPort: client.socket.localPort,
+                remoteAddress: client.socket.remoteAddress,
+                remotePort: client.socket.remotePort,
+                remoteFamily: client.socket.remoteFamily,
+            });
         });
     },
 
-    read: function(callback) {
-        callback(null, client.bufferedData);
-        client.bufferedData = ""; // we've sent them the data, now unbuffer the data
-    },
-
-    blockingRead: function(callback) {
-        if(client.bufferedData === "") {
+    read: function(blocking, callback) {
+        if(blocking && client.bufferedData === "") {
             client.socket.once("data", function() {
-                httpHandler.read(callback);
+                handler.read(false, callback);
             });
+
+            return;
         }
-        else {
-            httpHandler.read(callback);
-        }
+
+        var reading = client.bufferedData;
+
+        // read the maximum buffer size
+        reading = client.bufferedData.substr(0, client.maxBuffer);
+        // and cut out what they just read
+        client.bufferedData = client.bufferedData.substr(client.maxBuffer);
+
+        callback(null, reading);
     },
 
     write: function(str, encoding, callback) {
@@ -75,87 +89,68 @@ var httpHandler = {
     },
 };
 
-//--- HTTP Server ---\\
 
-var server = http.createServer(function(request, response) {
-    // assume they sent us something bad
-    var method = request.url.substr(1);
 
-    // special case to see if the http server is ready
-    if(method === "ready") {
-        response.statusCode = 200;
-        response.end();
-        return;
-    }
+//--- TCP Request Server ---\\
 
-    response.statusCode = 500;
+var server = net.createServer(function(requestSocket) {
+    var buffer = "";
+    requestSocket.on("data", function(data) {
+        buffer += data.toString();
 
-    if(client.lastError) {
-        response.end(client.lastError.message);
-        return;
-    }
-
-    if(!client.connected && method !== "connect") {
-        response.end("Not connected to a socket yet.");
-        return;
-    }
-
-    if(client.closed) {
-        response.end("Socket connection closed.");
-        return;
-    }
-
-    var funct = httpHandler[method];
-    if(!funct) {
-        response.method = 404; // method not found
-        response.end("Method `" + method + "` not found.");
-        return;
-    }
-
-    // if we got here it looks good!
-
-    // this is like a poor man's promise
-    function callback(err, returned) {
-        if(err) {
-            response.statusCode = 500;
-            response.end(err);
-            return;
+        if(buffer[buffer.length - 1] !== EOT_CHAR) {
+            return; // as we have no received the full text
         }
 
-        // assume OK
-        response.statusCode = 200; // OK
-        if(returned !== undefined) {
-            response.end(returned);
-        }
-        response.end();
-    };
+        var str = buffer.toString();
+        str = str.substr(0, str.length - 1); // cut off the EOT_CHAR
+        var index = str.indexOf("|");
 
-    // get all the data from the body streaming in
-    if(request.method === "POST") {
-        // then write data to the socket
-        var body = "";
-        request.on("data", function(data) {
-            body += data;
+        var method = str.substr(0, index);
+        var data = str.substr(index+1);
 
-            // Too much POST data, kill the connection!
-            // 1e7 = ~10MB, to prevent flood attacks
-            if(body.length > 1e7) {
-                request.connection.destroy();
+        var funct = handler[method];
+
+        function callback(err, data) {
+            var res = {};
+            if(err) {
+                res.error = err;
             }
-        });
 
-        request.on("end", function() {
-            // assume post data is always an array of arguments
-            var args = JSON.parse(body);
-            args.push(callback);
-            funct.apply(httpHandler, args);
-        });
-    }
-    else { // assume GET
-        funct(callback);
-    }
+            if(data) {
+                res.data = data;
+            }
+
+            if(!client.connected) {
+                res.workerNotConnected = true;
+            }
+
+            requestSocket.write(JSON.stringify(res));
+            requestSocket.destroy();
+        };
+
+        if(!funct) {
+            return callback("No method handler for " + method);
+        }
+
+        if(client.lastError) {
+            return callback(client.lastError);
+        }
+
+        if(!client.connected && method !== "connect" && method !== "ready") {
+            return callback("Client not connected to remote server yet.");
+        }
+
+        if(client.closed) {
+            return callback("Socket connection closed");
+        }
+
+        var args = JSON.parse(data);
+        args.push(callback);
+        funct.apply(handler, args);
+    });
 });
 
-server.listen(httpPort, "0.0.0.0", function() {
+server.listen(serverPort, "0.0.0.0", function() {
     client.ready = true;
 });
