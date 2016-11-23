@@ -3,9 +3,6 @@
   "version": "1.0.0",
   "description": "A synchronous interface to Node's net.Socket",
   "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/JacobFischer/sync-socket.git"
@@ -21,5 +18,5 @@
   "bugs": {
     "url": "https://github.com/JacobFischer/sync-socket/issues"
   },
-  "homepage": "https://github.com/JacobFischer/sync-socket#README.md",
+  "homepage": "https://github.com/JacobFischer/sync-socket#README.md"
 }
