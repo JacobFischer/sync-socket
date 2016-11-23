@@ -3,7 +3,7 @@
 // Without the need for a C++ dependency
 
 var net = require("net");
-var serverPort = process.argv[2]; // [0] should be the node executable, [1] should be the file worker.js, [2] will be the first arg, which is what we want
+var serverPort = process.argv[2] || 13354; // [0] should be the node executable, [1] should be the file worker.js, [2] will be the first arg, which is what we want
 var EOT_CHAR = String.fromCharCode(3);
 
 var client = {
@@ -58,10 +58,10 @@ var handler = {
         });
     },
 
-    read: function(blocking, callback) {
+    read: function(buffer, blocking, callback) {
         if(blocking && client.bufferedData === "") {
             client.socket.once("data", function() {
-                handler.read(false, callback);
+                handler.read(buffer, false, callback);
             });
 
             return;
@@ -69,10 +69,14 @@ var handler = {
 
         var reading = client.bufferedData;
 
+        if(!buffer || buffer <= 0) {
+            buffer = client.maxBuffer;
+        }
+
         // read the maximum buffer size
-        reading = client.bufferedData.substr(0, client.maxBuffer);
+        reading = client.bufferedData.substr(0, buffer);
         // and cut out what they just read
-        client.bufferedData = client.bufferedData.substr(client.maxBuffer);
+        client.bufferedData = client.bufferedData.substr(buffer);
 
         callback(null, reading);
     },

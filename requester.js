@@ -1,22 +1,17 @@
 var childProcess = require('child_process');
-var spawn = childProcess.spawn;
-
-function query(method, args) {
-
-};
 
 function Requester(options) {
     options = options || {};
     options.readyTimeout = options.readyTimeout || 5000; // 5 seconds by default
 
-    this._workerPort = options.workerPort || 8080;
-    this._requestTimeout = options.timeout || 1000;
+    this._workerPort = options.workerPort || 13354;
+    this._requestTimeout = options.timeout;
 
     // this spawns the worker.js as a separate node executable
     // we don't use `cluster` as then we could not query it
     // for HTTP requests for some reason, and we don't care about
     // the IPS messaging
-    this._worker = spawn(process.execPath, [ __dirname + "/worker.js", this._workerPort ]);
+    this._worker = childProcess.spawn(process.execPath, [ __dirname + "/worker.js", this._workerPort ]);
 
     var timeoutTime = Number(new Date()) + options.readyTimeout;
     var ready = false;
@@ -59,7 +54,7 @@ Requester.prototype._request = function _request(method, args) {
             SYNC_SOCKET_WORKER_PORT: this._workerPort,
             SYNC_SOCKET_WRITE: method + "|" + JSON.stringify(args),
         },
-        timeout: this._requestTimeout,
+        timeout: this._requestTimeout || undefined,
         maxBuffer: 1024*32,
     });
 
