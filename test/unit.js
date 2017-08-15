@@ -3,19 +3,12 @@ var net = require("net");
 var Buffer = require("buffer").Buffer;
 var SyncSocket = require("../src/");
 var PORT = 1337;
-//var converter = require("../app/converter");
 
 var echoServer;
 function onDataReceived(callback) {
 };
 
 describe("sync-socket", function() {
-  /*
-  before(function(done) {
-    done();
-  });
-  */
-
   it("should initialize", function() {
     expect(SyncSocket).to.be.a('function');
 
@@ -34,14 +27,13 @@ describe("sync-socket", function() {
     var syncSocket;
 
     var server = net.createServer(function(socket) {
-      //socket.pipe(socket);
       expect(socket).to.exist;
 
       syncSocket.destroy();
       server.close();
 
       done();
-    })
+    });
 
     server.listen(PORT, "127.0.0.1", function() {
       syncSocket = new SyncSocket();
@@ -60,7 +52,7 @@ describe("sync-socket", function() {
       syncSocket.destroy();
       server.close();
       done();
-    })
+    });
 
     server.listen(PORT, "127.0.0.1", function() {
       syncSocket = new SyncSocket();
@@ -162,7 +154,7 @@ describe("sync-socket", function() {
           // it's now disconnected, but we need to trigger that with a request
           expect(function() {
             syncSocket.read();
-          }).to.throw("Socket connection closed")
+          }).to.throw(); // different errors are thrown based on OS, and OS detection is outside the scope of these simple unit tests
 
           // it should be disconnected now (not connected)
           expect(syncSocket).to.have.own.property("connected", false);
