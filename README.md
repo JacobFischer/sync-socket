@@ -28,7 +28,7 @@ Obviously this is a ton of overhead just to avoid callbacks. But it works.
 
 ## Benchmarks
 
-I've ran some tests, and `SyncSocket` is about twice as slow in doing read/writes than my competing module [netlinkwrapper][netlinkwrapper]. So if node-gyp is not an issue to you, use that instead. Or really just use `net.Socket`.
+I've ran some tests, and `SyncSocket` is about **20 times slower** in doing read/writes than my competing module [netlinkwrapper][netlinkwrapper]. So if node-gyp is not an issue to you, use that instead. Or really just use `net.Socket`.
 
 [netlinkwrapper]: https://github.com/JacobFischer/netlinkwrapper
 [node-gyp]: https://github.com/nodejs/node-gyp

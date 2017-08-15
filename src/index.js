@@ -16,9 +16,32 @@ var Requester = require("./requester");
 function SyncSocket(options) {
     this.destroyed = false;
     this.connecting = false;
+    this.connected = false;
 
     this.requester = new Requester(options);
 };
+
+// this is exposed as a function rather than a prototype member because it is "private"
+function _request() {
+    var args = [].slice.call(arguments);
+    var syncSocket = args.shift(); // first arg is the syncsocket instance requesting
+                                   // all past are the actual args to request
+
+    try {
+        var response = syncSocket.requester.request.apply(syncSocket.requester, args);
+    }
+    catch(err) {
+        if(err.data) {
+            if(Object.hasOwnProperty.call(err.data, "connected")) {
+                syncSocket.connected = err.data.connected;
+            }
+        }
+
+        throw err;
+    }
+
+    return response;
+}
 
 /**
  * A synchronous version of net.Socket.connect(options).
@@ -39,7 +62,7 @@ SyncSocket.prototype.connect = function(options, host) {
         };
     }
 
-    var settings = this.requester.request("connect", options);
+    var settings = _request(this, "connect", options);
 
     for(var key in settings) {
         if(settings.hasOwnProperty(key)) {
@@ -47,6 +70,7 @@ SyncSocket.prototype.connect = function(options, host) {
         }
     }
 
+    this.connected = true;
     this.connecting = false;
 
     return this;
@@ -60,7 +84,7 @@ SyncSocket.prototype.connect = function(options, host) {
  * @return {string} the string read from the socket, or undefined if no data to read
  */
 SyncSocket.prototype.read = function(buffer, blocking) {
-    return this.requester.request("read", buffer, blocking);
+    return _request(this, "read", buffer, blocking);
 };
 
 /**
@@ -69,16 +93,20 @@ SyncSocket.prototype.read = function(buffer, blocking) {
  * @param {string} [encoding] - encoding of the data being written, defaults to 'utf-8'
  */
 SyncSocket.prototype.write = function(data, encoding) {
-    this.requester.request("write", data, encoding);
+    _request(this, "write", data, encoding);
 };
 
 /**
  * Disconnects/Destroys the connection and its workers
  */
 SyncSocket.prototype.disconnect = function() {
+    if(this.connected) {
+        _request(this, "disconnect");
+    }
+
+    this.connected = false;
     this.destroyed = true;
     this.requester.kill();
-    this.requester.request("disconnect");
 };
 
 SyncSocket.prototype.destroy = SyncSocket.prototype.disconnect;

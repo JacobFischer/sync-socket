@@ -1,0 +1,19 @@
+language: node_js
+node_js:
+  - "6.9.1"
+
+script:
+  # run units tests
+  - npm test
+
+before_deploy:
+  # generate the docs files
+  - gendocs.sh
+
+deploy:
+  provider: pages
+  skip_cleanup: true
+  local_dir: out/
+  github_token: $GH_TOKEN
+  on:
+    branch: master

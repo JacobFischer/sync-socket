@@ -38,7 +38,10 @@ Requester.prototype.request = function request(method, args) {
     var response = this._request.apply(this, arguments);
 
     if(!response || response.error) {
-        throw new Error(response && response.error || ("Error requesting " + method));
+        var error = new Error(response && response.error || "Error requesting " + method);
+        error.data = response.data;
+
+        throw error;
     }
     else {
         return response.data;
@@ -63,7 +66,9 @@ Requester.prototype._request = function _request(method, args) {
 }
 
 Requester.prototype.kill = function kill() {
-    if(this._worker) this._worker.kill("SIGINT");
+    if(this._worker) {
+        this._worker.kill("SIGINT");
+    }
 }
 
 module.exports = Requester;

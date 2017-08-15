@@ -103,7 +103,7 @@ var server = net.createServer(function(requestSocket) {
         buffer += data.toString();
 
         if(buffer[buffer.length - 1] !== EOT_CHAR) {
-            return; // as we have no received the full text
+            return; // as we have not received the full text
         }
 
         var str = buffer.toString();
@@ -146,7 +146,7 @@ var server = net.createServer(function(requestSocket) {
         }
 
         if(client.closed) {
-            return callback("Socket connection closed");
+            return callback("Socket connection closed", {connected: false});
         }
 
         var args = JSON.parse(data);
