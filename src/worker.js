@@ -158,3 +158,13 @@ var server = net.createServer(function(requestSocket) {
 server.listen(serverPort, "0.0.0.0", function() {
     client.ready = true;
 });
+
+// when the requester tells us to die, close all socket connections
+// so future SyncSockets do not get told that the socket it already being
+// listened to
+process.on("SIGINT", function() {
+    client.socket.destroy();
+    server.close(function() {
+        process.exit(0);
+    });
+});
