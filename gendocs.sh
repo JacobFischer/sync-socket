@@ -24,6 +24,6 @@ EOM
 
 rm -rf out
 
-./node_modules/.bin/jsdoc index.js -r ./README.md -t node_modules/jaguarjs-jsdoc -c conf.json
+./node_modules/.bin/jsdoc ./src/index.js -r ./README.md -t node_modules/jaguarjs-jsdoc -c conf.json
 
 rm conf.json
