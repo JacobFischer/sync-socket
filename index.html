@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>SyncSocket Documentation</title>
+    <link rel="icon" href="favicon.ico" type="image/x-icon"/>
+    <link rel="shortcut icon" href="favicon.ico" type="image/x-icon"/>
+    
+    <meta name="description" content="Documentation for the SyncScoket Node.js module" />
+    
+    
+    
+    <script src="scripts/prettify/prettify.js"></script>
+    <script src="scripts/prettify/lang-css.js"></script>
+    <script src="scripts/jquery.min.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/bootstrap.min.css">
+    <link type="text/css" rel="stylesheet" href="styles/jaguar.css">
+    
+    
+    <script>
+    var config = {"monospaceLinks":false,"cleverLinks":false,"applicationName":"SyncSocket Documentation","meta":{"title":"SyncSocket Documentation","description":"Documentation for the SyncScoket Node.js module","footer":"&copy; Jacob Fischer","noSourceFiles":true},"default":{}};
+    </script>
+    
+
+    
+</head>
+<body>
+<div id="wrap" class="clearfix">
+    
+<div class="navigation">
+    <h3 class="applicationName"><a href="index.html">SyncSocket Documentation</a></h3>
+
+    <div class="search">
+        <input id="search" type="text" class="form-control input-sm" placeholder="Search Documentations">
+    </div>
+    <ul class="list">
+    
+        <li class="item" data-name="SyncSocket">
+            <span class="title">
+                <a href="SyncSocket.html">SyncSocket</a>
+                
+            </span>
+            <ul class="members itemMembers">
+            
+            </ul>
+            <ul class="typedefs itemMembers">
+            
+            </ul>
+            <ul class="methods itemMembers">
+            
+            <span class="subtitle">Methods</span>
+            
+                <li data-name="SyncSocket#address"><a href="SyncSocket.html#address">address</a></li>
+            
+                <li data-name="SyncSocket#connect"><a href="SyncSocket.html#connect">connect</a></li>
+            
+                <li data-name="SyncSocket#disconnect"><a href="SyncSocket.html#disconnect">disconnect</a></li>
+            
+                <li data-name="SyncSocket#read"><a href="SyncSocket.html#read">read</a></li>
+            
+                <li data-name="SyncSocket#write"><a href="SyncSocket.html#write">write</a></li>
+            
+            </ul>
+            <ul class="events itemMembers">
+            
+            </ul>
+        </li>
+    
+    </ul>
+</div>
+    <div class="main">
+        <h1 class="page-title" data-filename="index.html">Index</h1>
+        
+
+
+    
+
+
+    <h3> </h3>
+
+
+
+
+
+
+
+
+    
+
+
+
+
+    <section>
+        <article class="readme"><h1>SyncSocket</h1><p>This Node.js module exposes a <strong>no-dependency</strong> class called <code>SyncSocket</code>, which acts as a synchronous interface to Node's <code>net.Socket</code> instance, which is normally only <strong>a</strong>synchronous.</p>
+<p>This module exposes many of the same methods and properties a normal <code>net.Socket</code> has.</p>
+<h2>Considerations</h2><p><code>SyncSocket</code> is slow. Not unusably slow, but you should have a good reason to want to use it. This was made for the rare case you need blocking read/writes in your Node.js application.</p>
+<p>In addition, another one of my modules, <a target="_blank" href="https://github.com/JacobFischer/netlinkwrapper">netlinkwrapper</a> exposes a similar synchronous socket. However that module requires node-gyp to compile. <code>SyncSocket</code> does <strong>not</strong> require <a target="_blank" href="https://github.com/nodejs/node-gyp">node-gyp</a>. In fact, it has no dependencies.</p>
+<h2>How Does it Work?</h2><p>tl;dr: I abuse <code>child_process.execFileSync</code>.</p>
+<p>I've done some pretty thorough research into how Node's <code>net.Socket</code> module works, and you can't make it synchronous without rewriting it in C++ via <a target="_blank" href="https://github.com/nodejs/node-gyp">node-gyp</a>, or using some modules like <a target="_blank" href="https://github.com/laverdet/node-fibers">fibers</a> that in turn would depend on node-gyp anyways.</p>
+<p>With that in mind I've devised this hack that abuses child processes.</p>
+<p>One process, the worker, is spawned that uses the normal <code>net</code> module doing read/writes asynchronously as you should to <code>net.Socket</code>s. It then creates a TCP server to allow requests to its <code>net.Socket</code>.</p>
+<p>Then another file, the query script, acts as a script that will request something from the worker, and spit the result out to stdout once it has the results, again gotten asynchronously.</p>
+<p>Now from our main thread we can abuse <code>child_process.execFileSync</code>, which executes the query script, which then queries our worker process, and exits with the result.</p>
+<p>Obviously this is a ton of overhead just to avoid callbacks. But it works.</p>
+<h2>Benchmarks</h2><p>I've ran some tests, and <code>SyncSocket</code> is about <strong>20 times slower</strong> in doing read/writes than my competing module <a target="_blank" href="https://github.com/JacobFischer/netlinkwrapper">netlinkwrapper</a>. So if node-gyp is not an issue to you, use that instead. Or really just use <code>net.Socket</code>.</p></article>
+    </section>
+
+
+
+
+
+
+        
+
+        <footer>
+            
+                &copy; Jacob Fischer &mdash;
+            
+            Documentation generated by <a target="_blank" href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.4</a> on Wed Aug 16 2017 02:06:46 GMT+0000 (UTC)
+        </footer>
+    </div>
+</div>
+<script>prettyPrint();</script>
+<script src="scripts/linenumber.js"></script>
+<script src="scripts/main.js"></script>
+</body>
+</html>
